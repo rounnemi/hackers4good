@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +92,7 @@ class MyContent extends StatelessWidget {
               ),
             ),
             child: Text(
-              'Aouinet',
+              'Login',
               style: TextStyle(
                 color: Colors.cyanAccent,
                 fontSize: 20,
@@ -115,7 +116,6 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-
 
 class BackgroundLogin extends StatelessWidget {
   @override
@@ -144,7 +144,7 @@ class BackgroundLogin extends StatelessWidget {
               ),
             ),
             // Votre widget de connexion ici
-            login(),
+            Login(),
           ],
         ),
       ],
@@ -152,8 +152,31 @@ class BackgroundLogin extends StatelessWidget {
   }
 }
 
+class Login extends StatelessWidget {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-class login extends StatelessWidget {
+  void _handleLogin(BuildContext context) {
+    final username = _usernameController.text;
+    final password = _passwordController.text;
+
+    // Ajoutez ici la logique de vérification des informations de connexion
+    if (username == 'utilisateur' && password == 'motdepasse') {
+      // Connexion réussie, naviguez vers la page de la caméra
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CameraWidget()),
+      );
+    } else {
+      // Affichez un message d'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Nom d\'utilisateur ou mot de passe incorrect'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -165,17 +188,19 @@ class login extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               TextField(
+                controller: _usernameController,
                 decoration: InputDecoration(
-                  labelText: 'User Name',
+                  labelText: 'Nom d\'utilisateur',
                   filled: true, // Activez le remplissage du champ de texte
                   fillColor: Colors.white, // Couleur d'arrière-plan blanche
                 ),
               ),
               SizedBox(height: 16.0),
               TextField(
+                controller: _passwordController,
                 obscureText: true, // Pour masquer le mot de passe
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'Mot de passe',
                   filled: true, // Activez le remplissage du champ de texte
                   fillColor: Colors.white, // Couleur d'arrière-plan blanche
                 ),
@@ -183,8 +208,7 @@ class login extends StatelessWidget {
               SizedBox(height: 24.0),
               ElevatedButton(
                 onPressed: () {
-                  // Gérez l'action de connexion ici
-                  // Vous pouvez ajouter ici la logique pour vérifier les informations de connexion
+                  _handleLogin(context);
                 },
                 style: ElevatedButton.styleFrom(
                   textStyle: TextStyle(
@@ -197,7 +221,7 @@ class login extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'Log in',
+                  'Login',
                   style: TextStyle(
                     color: Colors.cyanAccent,
                     fontSize: 25,
@@ -214,3 +238,80 @@ class login extends StatelessWidget {
     );
   }
 }
+
+class CameraWidget extends StatefulWidget {
+  @override
+  _CameraWidgetState createState() => _CameraWidgetState();
+}
+
+class _CameraWidgetState extends State<CameraWidget> {
+  late CameraController _cameraController;
+  late Future<void> _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialisez la caméra
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    final cameras = await availableCameras();
+    final firstCamera = cameras.first;
+
+    _cameraController = CameraController(
+      firstCamera,
+      ResolutionPreset.high, // Vous pouvez ajuster la résolution ici
+    );
+
+    _initializeControllerFuture = _cameraController.initialize();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Caméra'),
+      ),
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return CameraPreview(_cameraController);
+          } else {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          try {
+            // Prenez une photo
+            final XFile file = await _cameraController.takePicture();
+            // Vous pouvez maintenant utiliser 'file' qui contient le chemin de la photo
+          } catch (e) {
+            print(e);
+          }
+        },
+        child: Icon(Icons.camera),
+      ),
+    );
+  }
+}
+
+
